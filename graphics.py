@@ -1,16 +1,20 @@
 # graphics.py
-"""Simple object oriented graphics library
+"""Simple object-oriented graphics library
 The library is designed to make it very easy for novice programmers to
-experiment with computer graphics in an object oriented fashion. It is
-written by John Zelle for use with the book "Python Programming: An
+experiment with computer graphics in an object-oriented fashion. It was
+originally written by John Zelle for use with the book "Python Programming: An
 Introduction to Computer Science" (Franklin, Beedle & Associates).
+
 LICENSE: This is open-source software released under the terms of the
 GPL (http://www.gnu.org/licenses/gpl.html).
+
 PLATFORMS: The package is a wrapper around Tkinter and should run on
 any platform where Tkinter is available.
+
 INSTALLATION: Put this file somewhere where Python can see it.
+
 OVERVIEW: There are two kinds of objects in the library. The GraphWin
-class implements a window where drawing can be done and various
+class implements a window where drawing can be done, and various
 GraphicsObjects are provided that can be drawn into a GraphWin. As a
 simple example, here is a complete program to draw a circle of radius
 10 centered in a 100x100 window:
@@ -24,8 +28,10 @@ def main():
     win.close()    # Close window when done
 main()
 --------------------------------------------------------------------
+
 GraphWin objects support coordinate transformation through the
 setCoords method and mouse and keyboard interaction methods.
+
 The library provides the following graphical objects:
     Point
     Line
@@ -33,120 +39,166 @@ The library provides the following graphical objects:
     Oval
     Rectangle
     Polygon
+    RotatablePolygon
+    RotatableOval
     Text
     Entry (for text-based input)
     Image
-Various attributes of graphical objects can be set such as
-outline-color, fill-color and line-width. Graphical objects also
+
+Various attributes of graphical objects can be set, such as
+outline-color, fill-color, and line-width. Graphical objects also
 support moving and hiding for animation effects.
+
 The library also provides a very simple class for pixel-based image
 manipulation, Pixmap. A pixmap can be loaded from a file and displayed
 using an Image object. Both getPixel and setPixel methods are provided
 for manipulating the image.
+
 DOCUMENTATION: For complete documentation, see Chapter 4 of "Python
 Programming: An Introduction to Computer Science" by John Zelle,
-published by Franklin, Beedle & Associates.  Also see
-http://mcsp.wartburg.edu/zelle/python for a quick reference"""
+published by Franklin, Beedle & Associates. Also see
+http://mcsp.wartburg.edu/zelle/python for a quick reference.
+
+CONTRIBUTORS:
+- John Zelle: Original author of the library.
+- Scott Nissley: Current maintainer, added features such as rotatable graphics
+  objects (e.g., RotatablePolygon, RotatableOval), right-click support, and
+  collision detection methods.
+- Brandon Brzuszkiewicz: Contributed active fill support and enhancements to
+  graphical objects like Polygon and RoundedRectangle.
+- DJ Carroll: Added image manipulation features using the Pillow library,
+  including resizing, rotation, and collision detection for images.
+"""
 
 __version__ = "5.0"
 
-# Version 5 8/26/2016
-#     * update at bottom to fix MacOS issue causing askopenfile() to hang
-#     * update takes an optional parameter specifying update rate
-#     * Entry objects get focus when drawn
-#     * __repr_ for all objects
-#     * fixed offset problem in window, made canvas borderless
+# Version 5.2 4/26/2024
+#     * Fixed collision detection methods for rectangles (SN).
+
+# Version 5.1 4/20/2022
+#     * Added support for image manipulation using the Pillow library (DJC).
+#     * Added `transform` method to the Image class for resizing and rotating images (DJC).
+#     * Enhanced `getPixel` and `setPixel` methods for better image handling (DJC).
+
+# Version 5.0.3 4/20/2021
+#     * Added collision detection methods for rectangles, circles, and points (DJC).
+#     * Added `testCollision_ImageVsImage` and `testCollision_ImageVsPoint` methods for images (DJC).
+#     * Added `setCenter` method for Circle objects (DJC).
+
+# Version 5.0.2 5/17/2021
+#     * Added `setWindowIcon` method to GraphWin for setting custom window icons (SN).
+
+# Version 5.0.1 4/5/2020
+#     * Added right-click mouse support with `getMouseRight` and `checkMouseRight` methods (SN).
+
+# Version 4.4 4/4/2018
+#     * Added `getCurrentMouseLocation` method to GraphWin for tracking mouse movement (DJC).
+#     * Added `checkKeys` method to GraphWin for tracking currently pressed keys (DJC).
+
+# Version 4.3.3 3/9/2018
+#     * Added active fill support for graphical objects (BB).
+#     * Added `RoundedRectangle` class for rectangles with rounded corners (BB).
+
+# Version 4.3.2 3/5/2018
+#     * Fixed `getKey` and `checkKey` bugs in GraphWin (BB).
+
+# Version 4.3.1 1/5/2017
+#     * Added `RotatablePolygon` and `RotatableOval` classes for creating rotatable graphical objects (SN).
+#     * Added `redraw` method to `GraphicsObject` for redrawing objects (SN).
+#     * Added `smooth` attribute to `Polygon` and other graphical objects for smoother rendering (SN).
+#     * Added `setSmooth` method to `GraphicsObject` for enabling smooth rendering (SN).
 
 # Version 4.3 4/25/2014
-#     * Fixed Image getPixel to work with Python 3.4, TK 8.6 (tuple type handling)
-#     * Added interactive keyboard input (getKey and checkKey) to GraphWin
-#     * Modified setCoords to cause redraw of current objects, thus
-#       changing the view. This supports scrolling around via setCoords.
-#
-# Version 4.2 5/26/2011
-#     * Modified Image to allow multiple undraws like other GraphicsObjects
-# Version 4.1 12/29/2009
-#     * Merged Pixmap and Image class. Old Pixmap removed, use Image.
-# Version 4.0.1 10/08/2009
-#     * Modified the autoflush on GraphWin to default to True
-#     * Autoflush check on close, setBackground
-#     * Fixed getMouse to flush pending clicks at entry
-# Version 4.0 08/2009
-#     * Reverted to non-threaded version. The advantages (robustness,
-#         efficiency, ability to use with other Tk code, etc.) outweigh
-#         the disadvantage that interactive use with IDLE is slightly more
-#         cumbersome.
-#     * Modified to run in either Python 2.x or 3.x (same file).
-#     * Added Image.getPixmap()
-#     * Added update() -- stand alone function to cause any pending
-#           graphics changes to display.
-#
-# Version 3.4 10/16/07
-#     Fixed GraphicsError to avoid "exploded" error messages.
-# Version 3.3 8/8/06
-#     Added checkMouse method to GraphWin
-# Version 3.2.3
-#     Fixed error in Polygon init spotted by Andrew Harrington
-#     Fixed improper threading in Image constructor
-# Version 3.2.2 5/30/05
-#     Cleaned up handling of exceptions in Tk thread. The graphics package
-#     now raises an exception if attempt is made to communicate with
-#     a dead Tk thread.
-# Version 3.2.1 5/22/05
-#     Added shutdown function for tk thread to eliminate race-condition
-#        error "chatter" when main thread terminates
-#     Renamed various private globals with _
-# Version 3.2 5/4/05
-#     Added Pixmap object for simple image manipulation.
-# Version 3.1 4/13/05
-#     Improved the Tk thread communication so that most Tk calls
-#        do not have to wait for synchonization with the Tk thread.
-#        (see _tkCall and _tkExec)
-# Version 3.0 12/30/04
-#     Implemented Tk event loop in separate thread. Should now work
-#        interactively with IDLE. Undocumented autoflush feature is
-#        no longer necessary. Its default is now False (off). It may
-#        be removed in a future version.
-#     Better handling of errors regarding operations on windows that
-#       have been closed.
-#     Addition of an isClosed method to GraphWindow class.
+#     * Fixed Image `getPixel` to work with Python 3.4 and Tk 8.6 (tuple type handling).
+#     * Added interactive keyboard input (`getKey` and `checkKey`) to GraphWin.
+#     * Modified `setCoords` to cause redraw of current objects, supporting scrolling via `setCoords`.
 
-# Version 2.2 8/26/04
-#     Fixed cloning bug reported by Joseph Oldham.
-#     Now implements deep copy of config info.
-# Version 2.1 1/15/04
-#     Added autoflush option to GraphWin. When True (default) updates on
-#        the window are done after each action. This makes some graphics
-#        intensive programs sluggish. Turning off autoflush causes updates
-#        to happen during idle periods or when flush is called.
+# Version 4.2 5/26/2011
+#     * Modified Image to allow multiple undraws like other GraphicsObjects.
+
+# Version 4.1 12/29/2009
+#     * Merged Pixmap and Image classes. Old Pixmap removed; use Image instead.
+
+# Version 4.0.1 10/08/2009
+#     * Modified the autoflush on GraphWin to default to True.
+#     * Autoflush check on close and `setBackground`.
+#     * Fixed `getMouse` to flush pending clicks at entry.
+
+# Version 4.0 08/2009
+#     * Reverted to non-threaded version for robustness and efficiency.
+#     * Modified to run in both Python 2.x and 3.x.
+#     * Added `Image.getPixmap()`.
+#     * Added `update()` function to display pending graphics changes.
+
+# Version 3.4 10/16/2007
+#     * Fixed GraphicsError to avoid "exploded" error messages.
+
+# Version 3.3 8/8/2006
+#     * Added `checkMouse` method to GraphWin.
+
+# Version 3.2.3
+#     * Fixed error in Polygon init spotted by Andrew Harrington.
+#     * Fixed improper threading in Image constructor.
+
+# Version 3.2.2 5/30/2005
+#     * Cleaned up handling of exceptions in Tk thread. The graphics package
+#       now raises an exception if an attempt is made to communicate with
+#       a dead Tk thread.
+
+# Version 3.2.1 5/22/2005
+#     * Added shutdown function for Tk thread to eliminate race-condition
+#       error "chatter" when the main thread terminates.
+#     * Renamed various private globals with `_`.
+
+# Version 3.2 5/4/2005
+#     * Added Pixmap object for simple image manipulation.
+
+# Version 3.1 4/13/2005
+#     * Improved the Tk thread communication so that most Tk calls
+#       do not have to wait for synchronization with the Tk thread.
+
+# Version 3.0 12/30/2004
+#     * Implemented Tk event loop in a separate thread. Should now work
+#       interactively with IDLE.
+#     * Better handling of errors regarding operations on windows that
+#       have been closed.
+#     * Added `isClosed` method to GraphWin class.
+
+# Version 2.2 8/26/2004
+#     * Fixed cloning bug reported by Joseph Oldham.
+#     * Now implements deep copy of config info.
+
+# Version 2.1 1/15/2004
+#     * Added autoflush option to GraphWin. When True (default), updates on
+#       the window are done after each action. Turning off autoflush causes
+#       updates to happen during idle periods or when `flush` is called.
+
 # Version 2.0
-#     Updated Documentation
-#     Made Polygon accept a list of Points in constructor
-#     Made all drawing functions call TK update for easier animations
-#          and to make the overall package work better with
-#          Python 2.3 and IDLE 1.0 under Windows (still some issues).
-#     Removed vestigial turtle graphics.
-#     Added ability to configure font for Entry objects (analogous to Text)
-#     Added setTextColor for Text as an alias of setFill
-#     Changed to class-style exceptions
-#     Fixed cloning of Text objects
+#     * Updated Documentation.
+#     * Made Polygon accept a list of Points in the constructor.
+#     * Made all drawing functions call Tk update for easier animations.
+#     * Removed vestigial turtle graphics.
+#     * Added ability to configure font for Entry objects (analogous to Text).
+#     * Added `setTextColor` for Text as an alias of `setFill`.
+#     * Changed to class-style exceptions.
+#     * Fixed cloning of Text objects.
 
 # Version 1.6
-#     Fixed Entry so StringVar uses _root as master, solves weird
-#            interaction with shell in Idle
-#     Fixed bug in setCoords. X and Y coordinates can increase in
-#           "non-intuitive" direction.
-#     Tweaked wm_protocol so window is not resizable and kill box closes.
+#     * Fixed Entry so StringVar uses `_root` as master, solving weird
+#       interaction with the shell in IDLE.
+#     * Fixed bug in `setCoords`. X and Y coordinates can increase in
+#       "non-intuitive" directions.
+#     * Tweaked `wm_protocol` so the window is not resizable and the kill box closes.
 
 # Version 1.5
-#     Fixed bug in Entry. Can now define entry before creating a
-#     GraphWin. All GraphWins are now toplevel windows and share
-#     a fixed root (called _root).
+#     * Fixed bug in Entry. Can now define entry before creating a
+#       GraphWin. All GraphWins are now toplevel windows and share
+#       a fixed root (called `_root`).
 
 # Version 1.4
-#     Fixed Garbage collection of Tkinter images bug.
-#     Added ability to set text atttributes.
-#     Added Entry boxes.
+#     * Fixed garbage collection of Tkinter images bug.
+#     * Added ability to set text attributes.
+#     * Added Entry boxes.
 
 import time, os, sys, math
 
@@ -577,7 +629,7 @@ class GraphicsObject:
         """Returns the current outline width of the graphics object"""
         return self.config["width"]
 
-    def setActiveFill(self, color):  # Added By BB 3/8
+    def setActiveFill(self, color):  # Added By BB 3/8/2018
         self._reconfig("activefill", color)
 
     def getActiveFill(self):
@@ -740,23 +792,38 @@ class Rectangle(_BBox):
         other.config = self.config.copy()
         return other
     
-    @staticmethod   # DJC: Added 04.20.21.14.51
+    @staticmethod  # DJC: Added 04.20.21.14.51  # SN: Fixed 04.26.2024
     def testCollision_RectVsRect(rect1, rect2):
         """Returns True if the two Rectangles are colliding, False if not."""
-        return rect1.p1.x <= rect2.p2.x and rect1.p2.x >= rect2.p1.x and \
-               rect1.p1.y <= rect2.p2.y and rect1.p2.y >= rect2.p1.y
+        r1lx = min(rect1.p1.x, rect1.p2.x)
+        r1rx = max(rect1.p1.x, rect1.p2.x)
+        r1ty = min(rect1.p1.y, rect1.p2.y)
+        r1by = max(rect1.p1.y, rect1.p2.y)
+        r2lx = min(rect2.p1.x, rect2.p2.x)
+        r2rx = max(rect2.p1.x, rect2.p2.x)
+        r2ty = min(rect2.p1.y, rect2.p2.y)
+        r2by = max(rect2.p1.y, rect2.p2.y)
+        return r1lx <= r2rx and r1rx >= r2lx and r1ty <= r2by and r1by >= r2ty
 
-    @staticmethod   # DJC: Added 04.20.21.14.51
+    @staticmethod  # DJC: Added 04.20.21.14.51  # SN: Fixed 04.26.2024
     def testCollision_RectVsPoint(rect, point):
         """Returns True if the Point is colliding with the Rectangle, False if not."""
-        return point.x >= rect.p1.x and point.x <= rect.p2.x and \
-               point.y >= rect.p1.y and point.y <= rect.p2.y
+        lx = min(rect.p1.x, rect.p2.x)
+        rx = max(rect.p1.x, rect.p2.x)
+        ty = min(rect.p1.y, rect.p2.y)
+        by = max(rect.p1.y, rect.p2.y)
+        return point.x >= lx and point.x <= rx and point.y >= ty and point.y <= by
 
+    @staticmethod  # DJC: Added 04.20.21.14.51  # SN: Fixed 04.26.2024
     def testCollision_RectangleVsCircle(rectangle, circle):
         """Returns True if the circle is colliding with the rectangle. False if not."""
-        xClamp = max(rectangle.p1.x, min(rectangle.p2.x, circle.getCenter().x))
-        yClamp = max(rectangle.p1.y, min(rectangle.p2.y, circle.getCenter().y))
-        if math.sqrt((xClamp - circle.getCenter().x)**2 + (yClamp - circle.getCenter().y)**2) <= circle.radius:
+        lx = min(rectangle.p1.x, rectangle.p2.x)
+        rx = max(rectangle.p1.x, rectangle.p2.x)
+        ty = min(rectangle.p1.y, rectangle.p2.y)
+        by = max(rectangle.p1.y, rectangle.p2.y)
+        xClamp = max(lx, min(rx, circle.getCenter().x))
+        yClamp = max(ty, min(by, circle.getCenter().y))
+        if (xClamp - circle.getCenter().x) ** 2 + (yClamp - circle.getCenter().y) ** 2 <= circle.radius ** 2:
             return True
         else:
             return False
